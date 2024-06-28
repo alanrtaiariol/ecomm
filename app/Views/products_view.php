@@ -5,8 +5,11 @@
     <meta charset="UTF-8">
     <title>Products</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="<?= base_url('css/bootstrap.min.css') ?>">
+    <link href="../../vendor/components/bootstrap/css/bootstrap.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <meta name="csrf-token" content="<?= csrf_hash() ?>">
+
 </head>
 
 <body>
@@ -31,9 +34,10 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 20%;">Id</th>
-                                        <th style="width: 30%;">Title</th>
-                                        <th style="width: 30%;">Price</th>
+                                        <th style="width: 20%;">Title</th>
+                                        <th style="width: 20%;">Price</th>
                                         <th style="width: 20%;">Created</th>
+                                        <th style="width: 20%;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -96,7 +100,13 @@
         var products = "";
         $(document).ready(function() {
             render_list();
-            
+            var csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            });
         });
         function render_list(){
             $.ajax({
@@ -218,10 +228,12 @@
                 console.log(key);
                 if (key >= (page * productsByPage) && key <= (page * productsByPage) + productsByPage) {
                     tbody += `<tr>
-                            <td> ${item.id !== '' ? item.id : '-'} <td>
-                            <td> ${item.title !== '' ? item.title : '-'} <td>
-                            <td> ${item.price !== '' ? item.price : '-'} <td>
-                            <td> ${item.created_at !== '' ? item.created_at : '-'} <td>
+                            <td> ${item.id !== '' ? item.id : '-'} </td>
+                            <td> ${item.title !== '' ? item.title : '-'} </td>
+                            <td> ${item.price !== '' ? item.price : '-'} </td>
+                            <td> ${item.created_at !== '' ? item.created_at : '-'} </td>
+                            <td> <button type="button" id="edit_product"  data-id="${item.id}" class="btn btn-success"><i class="bi bi-pencil"></i></button>
+                            <button type="button" id="delete_product"  data-id="${item.id}" class="btn btn-danger"><i class="bi bi-trash"></i></button> </td>
                         </tr>`;
                 }
             });

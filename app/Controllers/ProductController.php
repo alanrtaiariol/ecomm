@@ -3,20 +3,30 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use CodeIgniter\HTTP\ResponseInterface;
+//use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\ProductModel;
 use DateTime;
 
 class ProductController extends BaseController
 {
+
+    public function __construct()
+    {
+        $this->logger = service('logger');
+    }
+
     public function index()
     {
         $productsModel = new ProductModel();
         $products = $productsModel->getProducts();
+        log_crud_action('READ', 'Se obtuvo el listado de productos');
         return $this->response->setJSON($products);
     }
 
     public function store() {
+        if (! $this->request->isAJAX()) {
+            return redirect()->back()->with('error', 'Invalid request type.');
+        }
         $validation = \Config\Services::validation();
 
         $rules = [
@@ -40,7 +50,7 @@ class ProductController extends BaseController
             $now = new DateTime();
 
             $new_id = (int)$last_product['id'] + 1;
-            print($new_id);
+          
             $product = [
                 'id' => $new_id,
                 'title' => $title,
@@ -49,6 +59,8 @@ class ProductController extends BaseController
             ];
             
             $store = $productsModel->store($product);
+            log_crud_action($this, 'CREATE', 'Se creó un producto');
+
             if($store !== false) {
                 return $this->response->setJSON([
                     'success' => true,
