@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 //use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\ProductModel;
 use DateTime;
+use Exception;
 
 class ProductController extends BaseController
 {
@@ -24,59 +25,63 @@ class ProductController extends BaseController
     }
 
     public function store() {
-        if (! $this->request->isAJAX()) {
-            return redirect()->back()->with('error', 'Invalid request type.');
-        }
+        // if (! $this->request->isAJAX()) {
+        //     return redirect()->back()->with('error', 'Invalid request type.');
+        // }
+
         $validation = \Config\Services::validation();
+        try {
 
-        $rules = [
-            'price' => 'required|numeric',
-            'title' => 'required|min_length[3]|max_length[100]',
-        ];
-
-        if($this->request->getMethod() === 'POST' && $validation->setRules($rules)){
-            $productsModel = new ProductModel();
-            $products = $productsModel->getProducts();
-            $title = $this->request->getVar('title');
-            foreach($products as $p) {
-                if($p['title'] == $title) {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'errors' => 'Ya existe un producto con el mismo titulo'
-                    ]);
-                }
-            }
-            $last_product = $products[count($products)-1];
-            $now = new DateTime();
-
-            $new_id = (int)$last_product['id'] + 1;
-          
-            $product = [
-                'id' => $new_id,
-                'title' => $title,
-                'price' => $this->request->getVar('price'),
-                'created_at' => $now->format('Y-m-d H:i:s')
+        
+            $rules = [
+                'price' => 'required|numeric',
+                'title' => 'required|min_length[3]|max_length[100]',
             ];
-            
-            $store = $productsModel->store($product);
-            log_crud_action($this, 'CREATE', 'Se creó un producto');
 
-            if($store !== false) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'id' => $new_id
-                ]);
-            } else {
+            if($this->request->getMethod() === 'POST' && $validation->setRules($rules)){
+                $productsModel = new ProductModel();
+                $products = $productsModel->getProducts();
+                $title = $this->request->getVar('title');
+                foreach($products as $p) {
+                    if($p['title'] == $title) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'errors' => 'Ya existe un producto con el mismo titulo'
+                        ]);
+                    }
+                }
+                $last_product = $products[count($products)-1];
+                $now = new DateTime();
+
+                $new_id = (int)$last_product['id'] + 1;
+            
+                $product = [
+                    'id' => $new_id,
+                    'title' => $title,
+                    'price' => $this->request->getVar('price'),
+                    'created_at' => $now->format('Y-m-d H:i:s')
+                ];
                 
-            }
-            
+                $store = $productsModel->store($product);
+                // log_crud_action('CREATE', 'Se creó un producto');
 
-          
-        } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'errors' => $validation->getErrors()
-            ]);
+                if($store !== false) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => "El producto se creo correctamente"
+                    ]);
+                } 
+                
+
+            
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'errors' => $validation->getErrors()
+                ]);
+            }
+        } catch(Exception $e) {
+            throw new Exception($e->getMessage());
         }
     }
 

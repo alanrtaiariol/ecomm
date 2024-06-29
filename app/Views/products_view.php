@@ -5,15 +5,17 @@
     <meta charset="UTF-8">
     <title>Products</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="../../vendor/components/bootstrap/css/bootstrap.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="<?= base_url('vendor/bootstrap/css/bootstrap.min.css') ?>">
+
+    <!-- <link rel="stylesheet" href="<?= base_url('vendor/bootstrap-icons/font/bootstrap-icons.css') ?>"> -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <meta name="csrf-token" content="<?= csrf_hash() ?>">
 
 </head>
 
 <body>
-
     <!-- HEADER: MENU + HEROE SECTION -->
     <header>
 
@@ -50,7 +52,7 @@
                                 <li class="page-item disabled">
                                     <a class="page-link">Previous</a>
                                 </li>
-                           
+
                                 <li class="page-item">
                                     <a class="page-link" href="#">Next</a>
                                 </li>
@@ -72,16 +74,19 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                <input type="hidden" class="form-control" id="product_id" name="product_id">
-                <div class="col-auto">
-                    <label for="title">Title</label>
-                    <input type="text" class="form-control" id="title" name="title" placeholder="title">
-                </div>
+                    <div id="products_modal_alerts" class="alert" role="alert">
+                        A simple danger alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                    </div>
+                    <input type="hidden" class="form-control" id="product_id" name="product_id">
+                    <div class="col-auto">
+                        <label for="title">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" placeholder="title">
+                    </div>
 
-                <div class="col-auto">
-                    <label for="price">price</label>
-                    <input type="number" class="form-control" id="price" name="price" placeholder="Price">
-                </div>
+                    <div class="col-auto">
+                        <label for="price">price</label>
+                        <input type="number" class="form-control" id="price" name="price" placeholder="Price">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -92,15 +97,15 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="<?= base_url('js/jquery.min.js') ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-    <!-- <script src="<?= base_url('js/bootstrap.bundle.min.js') ?>"></script> -->
+    <script src="<?= base_url('vendor/jquery/jquery.min.js') ?>"></script>
+    <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script>
         var productsByPage = 5;
         var products = "";
+        var csrfToken = "";
         $(document).ready(function() {
             render_list();
-            var csrfToken = $('meta[name="csrf-token"]').attr('content');
+            csrfToken = $('meta[name="csrf-token"]').attr('content');
 
             $.ajaxSetup({
                 headers: {
@@ -108,13 +113,13 @@
                 }
             });
         });
-        function render_list(){
+
+        function render_list() {
             $.ajax({
                 url: 'products',
                 type: 'GET',
 
                 success: function(response) {
-                    console.log(response);
                     if (response) {
                         render_table(response);
                         create_pagination_menu(response)
@@ -138,69 +143,95 @@
         });
 
         $(document).on('click', '#create_product', function() {
+            $('#products_modal_alerts').hide();
             $('#product_modal').modal('show');
         });
 
         $(document).on('click', '#save_product', function() {
             let id = $('#product_id').val();
-            if(id !== "") {
+            if (id !== "") {
                 update_product(id);
             } else {
                 create_product();
             }
         });
-        
-        function create_product(){
+
+        function create_product() {
             let title = $('#title').val();
             let price = $('#price').val();
 
             $.ajax({
-                    url: 'product/store',
-                    type: 'post',
-                    data: {
-                        title: title,
-                        price: price
-                    },
-                    success: function(response) {
-                        console.log(response);
-                        if (response.success === true) {
-                            console.log("entroo");
-                            $('#product_modal').modal('hide');
-                            render_list();
-                        } else {
-
-                        }
-
-                    },
-                    error: function(xhr, status, error) {
-                        console.error(xhr.responseText);
+                url: 'product/store',
+                type: 'post',
+                data: {
+                    title: title,
+                    price: price,
+                    csrf_test_name: csrfToken
+                },
+                success: function(response) {
+                    actualizarCSRFToken();
+                    if (response.success === true) {
+                        $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
+                        setTimeout(() => {
+                            $('#product_modal').modal('hide');    
+                        }, 1500);
+                        clean_Fields();
+                        render_list();
+                    } else {
+                        console.log("entro else");
+                        $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
+                        clean_Fields();
                     }
+
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                }
             });
         }
 
-        function update_product(product_id){
+        function actualizarCSRFToken() {
+            $.ajax({
+                url: ' csrf/update',
+                type: 'POST',
+                success: function(response) {
+                    csrfToken = response.csrf_token;
+                    console.log(csrfToken)
+                    console.log('Token CSRF actualizado:', csrfToken);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al actualizar el token CSRF:', xhr.responseText);
+                }
+            });
+        }
+        function clean_Fields() {
+            $('#title').val('');
+            $('#price').val('');
+            $('#id').val('');
+        }
+        function update_product(product_id) {
 
             let title = $('#title').val();
             let price = $('#price').val();
             $.ajax({
-                    url: 'products/update/' + product_id,
-                    type: 'POST',
-                    data: {
-                        title: title,
-                        price: price
-                    },
-                    success: function(response) {
-                        console.log(response);
-                        if (response) {
-                            render_table(response);
-                            create_pagination_menu(response)
-                            products = response;
-                        }
-
-                    },
-                    error: function(xhr, status, error) {
-                        console.error(xhr.responseText);
+                url: 'products/update/' + product_id,
+                type: 'POST',
+                data: {
+                    title: title,
+                    price: price
+                },
+                success: function(response) {
+                    console.log(response);
+                    if (response) {
+                        render_table(response);
+                        create_pagination_menu(response)
+                        products = response;
                     }
+
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                }
             });
         }
 
@@ -223,9 +254,7 @@
 
         function render_table(products, page = 0) {
             let tbody = '';
-            console.log("page inside table: " + page);
             products.forEach((item, key) => {
-                console.log(key);
                 if (key >= (page * productsByPage) && key <= (page * productsByPage) + productsByPage) {
                     tbody += `<tr>
                             <td> ${item.id !== '' ? item.id : '-'} </td>

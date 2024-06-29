@@ -12,3 +12,5 @@ $routes->get('/', function(){
 $routes->get('products', 'ProductController::index');
 $routes->post('product/store', 'ProductController::store');
 $routes->post('product/update', 'ProductController::update');
+
+$routes->post('csrf/update', 'CsrfController::updateCsrfToken');
