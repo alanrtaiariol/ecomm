@@ -22,7 +22,7 @@ class ProductController extends BaseController
     {
         $productsModel = new ProductModel();
         $products = $productsModel->getProducts();
-        log_crud_action('READ', 'Se obtuvo el listado de productos');
+        log_event('READ', "Se consulo el listado de productos");
         return $this->response->setJSON($products);
     }
 
@@ -65,7 +65,7 @@ class ProductController extends BaseController
                 ];
                 
                 $store = $productsModel->store($product);
-                // log_crud_action('CREATE', 'Se creó un producto');
+                log_event('CREATE', "Se creó el producto $new_id");
 
                 if($store !== false) {
                     return $this->response->setJSON([
@@ -126,7 +126,7 @@ class ProductController extends BaseController
                     ];
                     
                     $store = $productsModel->update((int)$id, $product);
-                    // log_crud_action('CREATE', 'Se creó un producto');
+                    log_event('UPDATE', "Se modifico el producto $id");
 
                     if($store !== false) {
                         return $this->response->setJSON([
@@ -159,7 +159,7 @@ class ProductController extends BaseController
             if($id){
                 $productsModel = new ProductModel();
                 $productsModel->delete((int)$id);
-    
+                log_event('DELETE', "Se elimino el producto $id");
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Producto eliminado correctamente',

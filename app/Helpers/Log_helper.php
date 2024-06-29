@@ -1,10 +1,11 @@
 <?php 
 // app/Helpers/Log_helper.php
-if(! function_exists('log_crud_action')){
-    function log_crud_action($action, $description) {
-        $logger = \Config\Services::logger();
+if(! function_exists('log_event')) {
+    function log_event($event, $message) {
+        $path = WRITEPATH . 'logs/products/events.log';
 
-        $message = date('Y-m-d H:i:s') . ' - ' . strtoupper($action) . ': ' . strtoupper($description);
-        $logger->info($message,['channel' => 'products']);
+        $logMessage = date('Y-m-d H:i:s') . " - {$event}: {$message}" . PHP_EOL;
+
+        file_put_contents($path, $logMessage, FILE_APPEND);
     }
 }
