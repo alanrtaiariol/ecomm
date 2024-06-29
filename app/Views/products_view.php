@@ -22,7 +22,7 @@
     </header>
 
     <!-- CONTENT -->
-    <div class="container text-center">
+    <div class="container">
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -31,6 +31,28 @@
                         <button type="button" id="create_product" class="btn btn-primary">Create</button>
                     </div>
                     <div class="card-body">
+                        <div class="row">
+                            <form id="filterForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <label for="title_filter" class="form-label text-left">Título</label>
+                                        <input type="text" id="title_filter" name="title_filter" class="form-control" placeholder="Buscar por título">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="price_filter" class="form-label text-left">Precio</label>
+                                        <input type="number" id="price_filter" name="price_filter" class="form-control" placeholder="Buscar por precio">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="creation_date_filter" class="form-label text-left">Fecha de Creación</label>
+                                        <input type="date" id="creation_date_filter" name="creation_date_filter" class="form-control">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-primary mt-4">Filtrar</button>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
@@ -103,6 +125,7 @@
         var productsByPage = 5;
         var products = "";
         var csrfToken = "";
+        let filteredProducts = [];
         $(document).ready(function() {
             render_list();
             // csrfToken = $('meta[name="csrf-token"]').attr('content');
@@ -159,7 +182,7 @@
 
         $(document).on('click', '#delete_product', function() {
             let product_id = $(this).data('pid');
-            if(product_id !== null){
+            if (product_id !== null) {
                 delete_product(product_id);
             }
             console.log('pid: ' + product_id);
@@ -178,6 +201,21 @@
             $('#product_modal').modal('show');
         });
 
+        //FILTERS
+        $('#title_filter').on('input', function() {
+            let title_filter = $(this).val();
+            if (title_filter !== '') {
+                    filteredProducts = products.filter(product =>
+                    product.title.toLowerCase().includes(title_filter.toLowerCase())
+                );
+                products = filteredProducts;
+
+                render_table(products)
+            } else {
+                render_list();
+            }
+        });
+
         function delete_product(product_id) {
             $.ajax({
                 url: 'product/delete',
@@ -186,7 +224,7 @@
                     id: product_id,
                 },
                 success: function(response) {
-                    if(response.success){
+                    if (response.success) {
                         render_list();
                     }
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
@@ -214,7 +252,7 @@
                     if (response.success === true) {
                         $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
                         setTimeout(() => {
-                            $('#product_modal').modal('hide');    
+                            $('#product_modal').modal('hide');
                         }, 1500);
                         clean_Fields();
                         render_list();
@@ -267,7 +305,7 @@
                     if (response.success === true) {
                         $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
                         setTimeout(() => {
-                            $('#product_modal').modal('hide');    
+                            $('#product_modal').modal('hide');
                         }, 1500);
                         clean_Fields();
                         render_list();

@@ -54,8 +54,6 @@ class ProductController extends BaseController
                 }
                 
                 $now = new DateTime();
-
-                
             
                 $product = [
                     'id' => $new_id,
