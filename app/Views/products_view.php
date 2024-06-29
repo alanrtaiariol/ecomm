@@ -105,11 +105,11 @@
         var csrfToken = "";
         $(document).ready(function() {
             render_list();
-            csrfToken = $('meta[name="csrf-token"]').attr('content');
+            // csrfToken = $('meta[name="csrf-token"]').attr('content');
 
             $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
                 }
             });
         });
@@ -143,6 +143,7 @@
         });
 
         $(document).on('click', '#create_product', function() {
+            clean_Fields();
             $('#products_modal_alerts').hide();
             $('#product_modal').modal('show');
         });
@@ -156,6 +157,47 @@
             }
         });
 
+        $(document).on('click', '#delete_product', function() {
+            let product_id = $(this).data('pid');
+            if(product_id !== null){
+                delete_product(product_id);
+            }
+            console.log('pid: ' + product_id);
+        });
+
+
+        $(document).on('click', '#edit_product', function() {
+            let product_id = $(this).data('pid');
+            let product = products.filter((p) => {
+                return p.id == product_id;
+            });
+            $('#title').val(product[0].title);
+            $('#price').val(product[0].price);
+            $('#product_id').val(product[0].id);
+            $('#products_modal_alerts').hide();
+            $('#product_modal').modal('show');
+        });
+
+        function delete_product(product_id) {
+            $.ajax({
+                url: 'product/delete',
+                type: 'post',
+                data: {
+                    id: product_id,
+                },
+                success: function(response) {
+                    if(response.success){
+                        render_list();
+                    }
+                    $('meta[name="csrf-token"]').attr('content', response.csrf_token);
+
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                }
+            });
+        }
+
         function create_product() {
             let title = $('#title').val();
             let price = $('#price').val();
@@ -166,10 +208,9 @@
                 data: {
                     title: title,
                     price: price,
-                    csrf_test_name: csrfToken
                 },
                 success: function(response) {
-                    actualizarCSRFToken();
+                    // actualizarCSRFToken();
                     if (response.success === true) {
                         $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
                         setTimeout(() => {
@@ -182,14 +223,14 @@
                         $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
                         clean_Fields();
                     }
-
+                    $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
                     console.error(xhr.responseText);
                 }
             });
         }
-
+        /*
         function actualizarCSRFToken() {
             $.ajax({
                 url: ' csrf/update',
@@ -204,30 +245,37 @@
                 }
             });
         }
+        */
         function clean_Fields() {
             $('#title').val('');
             $('#price').val('');
             $('#id').val('');
         }
-        function update_product(product_id) {
 
+        function update_product(product_id) {
             let title = $('#title').val();
             let price = $('#price').val();
             $.ajax({
-                url: 'products/update/' + product_id,
+                url: 'product/update/' + product_id,
                 type: 'POST',
                 data: {
                     title: title,
                     price: price
                 },
+                // csrf_test_name: csrfToken,
                 success: function(response) {
-                    console.log(response);
-                    if (response) {
-                        render_table(response);
-                        create_pagination_menu(response)
-                        products = response;
+                    if (response.success === true) {
+                        $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
+                        setTimeout(() => {
+                            $('#product_modal').modal('hide');    
+                        }, 1500);
+                        clean_Fields();
+                        render_list();
+                    } else {
+                        $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
+                        clean_Fields();
                     }
-
+                    $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
                     console.error(xhr.responseText);
@@ -261,8 +309,8 @@
                             <td> ${item.title !== '' ? item.title : '-'} </td>
                             <td> ${item.price !== '' ? item.price : '-'} </td>
                             <td> ${item.created_at !== '' ? item.created_at : '-'} </td>
-                            <td> <button type="button" id="edit_product"  data-id="${item.id}" class="btn btn-success"><i class="bi bi-pencil"></i></button>
-                            <button type="button" id="delete_product"  data-id="${item.id}" class="btn btn-danger"><i class="bi bi-trash"></i></button> </td>
+                            <td> <button type="button" id="edit_product"  data-pid="${item.id}" class="btn btn-success"><i class="bi bi-pencil"></i></button>
+                            <button type="button" id="delete_product"  data-pid="${item.id}" class="btn btn-danger"><i class="bi bi-trash"></i></button> </td>
                         </tr>`;
                 }
             });

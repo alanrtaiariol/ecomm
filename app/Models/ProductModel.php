@@ -32,16 +32,27 @@ class ProductModel extends Model
     }
 
     public function delete($id = null, bool $purge = true) {
-        if(isset($this->products[$id])){
-            unset($this->products[$id]);
-        } 
-        file_put_contents($this->path, json_encode(array_values($this->products)));
+
+        $new_products = array_filter($this->products, function($p) use ($id) {
+            return $p['id'] !== $id;
+        });
+
+        $this->products = array_values($new_products);
+
+        file_put_contents($this->path, json_encode($this->products));
     }
 
     public function update($id = null, $product = null): bool {
-        if(isset($this->products[$id])){
-            $this->products[$id] = $product;
+        
+        if(!empty($id) && !empty($product)) {
+            foreach ($this->products as &$p) {
+                if ($p['id'] == $id) {
+                    $p = $product;
+                    break;
+                }
+            }
+    
+            return file_put_contents($this->path, json_encode($this->products));
         }
-        file_put_contents($this->path, json_encode($this->products));
     }
 }
