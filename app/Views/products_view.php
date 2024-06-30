@@ -122,7 +122,7 @@
     <!-- SCRIPTS -->
     <script src="<?= base_url('vendor/jquery/jquery.min.js') ?>"></script>
     <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
-    <script src="<?= base_url("node_modules/moment/min/moment.min.js")?>"></script>
+    <script src="<?= base_url("node_modules/moment/min/moment.min.js") ?>"></script>
 
     <script>
         var productsByPage = 5;
@@ -208,18 +208,17 @@
         $("#creation_date_filter").on('change', function() {
             let selectedDate = $(this).val();
             $('#selectedDate').text('Fecha seleccionada: ' + selectedDate);
-            if (selectedDate !== '') {
                 filterProducts();
-            }
+            
         });
 
         $("#price_filter").on('change', function() {
-                filterProducts();
+            filterProducts();
         });
 
         $('#title_filter').on('input', function() {
             let title = $(this).val();
-            filterProducts(title);            
+            filterProducts(title);
         });
 
         //FILTERS
@@ -230,10 +229,9 @@
             filteredProducts = productsClone.filter(product => {
                 let created_at = $('#creation_date_filter').val();
                 let priceFilter = $('#price_filter').val();
-
+                // console.log(created_at, product.created_at, moment(product.created_at).format('YYYY-MM-DD'))
                 let titleFiltered = product.title.toLowerCase().includes(title.toLowerCase());
-                // let date_matched = products[0].created_at.split(' ')[0] == product.created_at;
-                let dateMatched = created_at === '' || product.created_at.split(' ')[0] === created_at;
+                let dateMatched = created_at === '' || moment(product.created_at).format('YYYY-MM-DD') === created_at;
 
 
                 let priceMatch = true;
@@ -243,10 +241,10 @@
                     minPrice = parseFloat(minPrice);
                     maxPrice = maxPrice ? parseFloat(maxPrice) : Infinity;
                     priceMatch = product.price >= minPrice && product.price <= maxPrice;
-                    console.log(product.price + " >= " + minPrice  + " && " + product.price +" <= "+ maxPrice)
+                    console.log(product.price + " >= " + minPrice + " && " + product.price + " <= " + maxPrice)
                 }
                 console.log(priceMatch)
-                return (title == '' || titleFiltered) &&  dateMatched && priceMatch;
+                return (title == '' || titleFiltered) && dateMatched && priceMatch;
 
             });
 
