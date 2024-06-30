@@ -35,19 +35,20 @@
                             <form id="filterForm">
                                 <div class="row mb-3">
                                     <div class="col-md-3">
-                                        <label for="title_filter" class="form-label text-left">Título</label>
                                         <input type="text" id="title_filter" name="title_filter" class="form-control" placeholder="Buscar por título">
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="price_filter" class="form-label text-left">Precio</label>
-                                        <input type="number" id="price_filter" name="price_filter" class="form-control" placeholder="Buscar por precio">
+                                        <select id="price_filter" class="form-control">
+                                            <option value="">Filtrar por precio</option>
+                                            <option value="0-500">$0 - $500</option>
+                                            <option value="501-1000">$501 - $1000</option>
+                                            <option value="1001-5000">$1001 - $5000</option>
+                                            <option value="5001-10000">$5001 - $10000</option>
+                                            <option value="10001-">$10001 o mas</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="creation_date_filter" class="form-label text-left">Fecha de Creación</label>
                                         <input type="date" id="creation_date_filter" name="creation_date_filter" class="form-control">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="button" class="btn btn-primary mt-4">Filtrar</button>
                                     </div>
                                 </div>
 
@@ -123,9 +124,10 @@
     <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script>
         var productsByPage = 5;
-        var products = "";
+        var products = [];
+        var productsClone = [];
         var csrfToken = "";
-        let filteredProducts = [];
+        var filteredProducts = [];
         $(document).ready(function() {
             render_list();
             // csrfToken = $('meta[name="csrf-token"]').attr('content');
@@ -201,20 +203,67 @@
             $('#product_modal').modal('show');
         });
 
-        //FILTERS
-        $('#title_filter').on('input', function() {
-            let title_filter = $(this).val();
-            if (title_filter !== '') {
-                    filteredProducts = products.filter(product =>
-                    product.title.toLowerCase().includes(title_filter.toLowerCase())
-                );
-                products = filteredProducts;
-
-                render_table(products)
-            } else {
-                render_list();
+        $("#creation_date_filter").on('change', function() {
+            let selectedDate = $(this).val();
+            $('#selectedDate').text('Fecha seleccionada: ' + selectedDate);
+            if (selectedDate !== '') {
+                filterProducts();
             }
         });
+
+        $("#price_filter").on('change', function() {
+                filterProducts();
+        });
+
+        $('#title_filter').on('input', function() {
+            let title = $(this).val();
+            filterProducts(title);            
+        });
+
+        //FILTERS
+
+        function filterProducts(title = '') {
+            console.log(title + "  adentro")
+            productsClone = [...products];
+            filteredProducts = productsClone.filter(product => {
+                let created_at = $('#creation_date_filter').val();
+                let priceFilter = $('#price_filter').val();
+
+                let titleFiltered = product.title.toLowerCase().includes(title.toLowerCase());
+                // let date_matched = products[0].created_at.split(' ')[0] == product.created_at;
+                let dateMatched = created_at === '' || product.created_at.split(' ')[0] === created_at;
+
+
+                let priceMatch = true;
+                if (priceFilter) {
+                    let [minPrice, maxPrice] = priceFilter.split('-');
+                    console.log(minPrice, maxPrice)
+                    minPrice = parseFloat(minPrice);
+                    maxPrice = maxPrice ? parseFloat(maxPrice) : Infinity;
+                    priceMatch = product.price >= minPrice && product.price <= maxPrice;
+                    console.log(product.price + " >= " + minPrice  + " && " + product.price +" <= "+ maxPrice)
+                }
+                console.log(priceMatch)
+                return (title == '' || titleFiltered) &&  dateMatched && priceMatch;
+
+            });
+
+            render_table(filteredProducts);
+        }
+
+        function searchByDate(selectedDate) {
+            filteredProducts = productsClone.filter(product =>
+                product.created_at.split(' ')[0].trim() == selectedDate
+            );
+            return filteredProducts;
+        }
+
+        function searchByTitle(title_filter) {
+            filteredProducts = productsClone.filter(product =>
+                product.title.toLowerCase().includes(title_filter.toLowerCase())
+            );
+            return filteredProducts;
+        }
 
         function delete_product(product_id) {
             $.ajax({
