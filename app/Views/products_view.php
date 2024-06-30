@@ -122,6 +122,8 @@
     <!-- SCRIPTS -->
     <script src="<?= base_url('vendor/jquery/jquery.min.js') ?>"></script>
     <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
+    <script src="<?= base_url("node_modules/moment/min/moment.min.js")?>"></script>
+
     <script>
         var productsByPage = 5;
         var products = [];
@@ -395,7 +397,7 @@
                             <td> ${item.id !== '' ? item.id : '-'} </td>
                             <td> ${item.title !== '' ? item.title : '-'} </td>
                             <td> ${item.price !== '' ? item.price : '-'} </td>
-                            <td> ${item.created_at !== '' ? item.created_at : '-'} </td>
+                            <td> ${item.created_at !== '' ? moment(item.created_at).format('YYYY-MM-DD') : '-'} </td>
                             <td> <button type="button" id="edit_product"  data-pid="${item.id}" class="btn btn-success"><i class="bi bi-pencil"></i></button>
                             <button type="button" id="delete_product"  data-pid="${item.id}" class="btn btn-danger"><i class="bi bi-trash"></i></button> </td>
                         </tr>`;
