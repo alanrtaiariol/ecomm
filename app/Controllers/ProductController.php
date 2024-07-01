@@ -2,107 +2,66 @@
 
 namespace App\Controllers;
 
-use App\Controllers\BaseController;
-//use CodeIgniter\HTTP\ResponseInterface;
-use App\Models\ProductModel;
+
 use DateTime;
 use Exception;
-
-use function PHPSTORM_META\type;
+use App\Controllers\BaseController;
+use App\Models\ProductModel;
 
 class ProductController extends BaseController
 {
-
-    public function __construct()
-    {
-        $this->logger = service('logger');
-    }
-
     public function index()
     {
-        $productsModel = new ProductModel();
-        $products = $productsModel->getProducts();
-        log_event('READ', "Se consulo el listado de productos");
-        return $this->response->setJSON($products);
-    }
-
-    public function store() {
-        $csrfToken = csrf_hash();
-        $validation = \Config\Services::validation();
         try {
-            $rules = [
-                'price' => 'required|numeric',
-                'title' => 'required|min_length[3]|max_length[100]',
-            ];
-            $new_id = 1;
-            if($this->request->getMethod() === 'POST' && $validation->setRules($rules)){
+            $csrfToken = csrf_hash();
+            $userRole = $this->session->UserRole;
+            if(in_array($userRole,['admin', 'usuario'])) {
+                
                 $productsModel = new ProductModel();
                 $products = $productsModel->getProducts();
-                $title = $this->request->getVar('title');
-                if(count($products) > 0 && is_array($products)){
-                    foreach($products as $p) {
-                        if($p['title'] == $title) {
-                            return $this->response->setJSON([
-                                'success' => false,
-                                'errors' => 'Ya existe un producto con el mismo titulo',
-                                'csrf_token' => $csrfToken
-                            ]);
-                        }
-                    }
-                    $last_product = $products[count($products)-1];
-                    $new_id = (int)$last_product['id'] + 1;
-                }
-                
-                $now = new DateTime();
-            
-                $product = [
-                    'id' => $new_id,
-                    'title' => $title,
-                    'price' => $this->request->getVar('price'),
-                    'created_at' => $now->format('Y-m-d H:i:s')
-                ];
-                
-                $store = $productsModel->store($product);
-                log_event('CREATE', "Se creó el producto $new_id");
+                log_event('READ', "Se consulo el listado de productos");
 
-                if($store !== false) {
-                    return $this->response->setJSON([
-                        'success' => true,
-                        'message' => "El producto se creo correctamente",
-                        'csrf_token' => $csrfToken
-                    ]);
-                } 
-                
-
-            
-            } else {
                 return $this->response->setJSON([
-                    'success' => false,
-                    'errors' => $validation->getErrors(),
+                    "data" => $products,
+                    'csrf_token' => $csrfToken
+                ]);
+            } else {
+
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Access Denied',
                     'csrf_token' => $csrfToken
                 ]);
             }
-        } catch(Exception $e) {
-            throw new Exception($e->getMessage());
+        } catch (\Throwable $th) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => $th->getMessage(),
+                'csrf_token' => csrf_hash()
+            ]); //throw $th;
         }
+
     }
 
-
-    public function update($id) {
-        $validation = \Config\Services::validation();
-        $csrfToken = csrf_hash();
-
+    public function store() {
+        
         try {
-            if(!empty($id)) { 
+            $userRole = $this->session->UserRole;
+            if($userRole === 'admin') {
+                $csrfToken = csrf_hash();
+                $validation = \Config\Services::validation();
                 $rules = [
                     'price' => 'required|numeric',
                     'title' => 'required|min_length[3]|max_length[100]',
                 ];
-
+                $new_id = 1;
                 if($this->request->getMethod() === 'POST' && $validation->setRules($rules)){
                     $productsModel = new ProductModel();
                     $products = $productsModel->getProducts();
                     $title = $this->request->getVar('title');
+                    $cleanTitle = htmlspecialchars(trim($title));
+                    $cleanPrice = htmlspecialchars(trim($this->request->getVar('price')));
+
                     if(count($products) > 0 && is_array($products)){
                         foreach($products as $p) {
                             if($p['title'] == $title) {
@@ -113,29 +72,28 @@ class ProductController extends BaseController
                                 ]);
                             }
                         }
+
+                        $last_product = $products[count($products)-1];
+                        $new_id = (int)$last_product['id'] + 1;
                     }
                     
-                    $now = new DateTime();
                     $product = [
-                        'id' => $id,
-                        'title' => $title,
-                        'price' => $this->request->getVar('price'),
-                        'created_at' => $now->format('Y-m-d H:i:s')
+                        'id' => $new_id,
+                        'title' => $cleanTitle,
+                        'price' => (float)$cleanPrice,
+                        'created_at' => date('Y-m-d H:i:s')
                     ];
                     
-                    $store = $productsModel->update((int)$id, $product);
-                    log_event('UPDATE', "Se modifico el producto $id");
+                    $store = $productsModel->store($product);
+                    log_event('CREATE', "Se creó el producto $new_id");
 
                     if($store !== false) {
-                        return $this->response->setJSON([
+                        return $this->response->setStatusCode(200)->setJSON([
                             'success' => true,
-                            'message' => "El producto se modifico correctamente",
+                            'message' => "El producto se creo correctamente",
                             'csrf_token' => $csrfToken
                         ]);
                     } 
-                    
-
-                
                 } else {
                     return $this->response->setJSON([
                         'success' => false,
@@ -143,6 +101,76 @@ class ProductController extends BaseController
                         'csrf_token' => $csrfToken
                     ]);
                 }
+            } else {
+                return $this->response->setStatusCode(403)->setJSON(['error' => 'Acceso no autorizado']);
+            }
+            
+        } catch(Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+
+    public function update($id) {
+        try {
+            $userRole = $this->session->UserRole;
+            if($userRole === 'admin') {
+                $validation = \Config\Services::validation();
+                $csrfToken = csrf_hash();
+                if(!empty($id)) { 
+                    $rules = [
+                        'price' => 'required|numeric',
+                        'title' => 'required|min_length[3]|max_length[100]',
+                    ];
+
+                    if($this->request->getMethod() === 'POST' && $validation->setRules($rules)){
+                        $productsModel = new ProductModel();
+                        $products = $productsModel->getProducts();
+                        $title = $this->request->getVar('title');
+                            $cleanTitle = htmlspecialchars(trim($title));
+                        $cleanPrice = htmlspecialchars(trim($this->request->getVar('price')));
+
+                        if(count($products) > 0 && is_array($products)){
+                            foreach($products as $p) {
+                                if($p['title'] == $title) {
+                                    return $this->response->setJSON([
+                                        'success' => false,
+                                        'errors' => 'Ya existe un producto con el mismo titulo',
+                                        'csrf_token' => $csrfToken
+                                    ]);
+                                }
+                            }
+                        }
+                        
+                        $now = new DateTime();
+                        $product = [
+                            'id' => $id,
+                            'title' => $cleanTitle,
+                            'price' => (float)$cleanPrice,
+                            'created_at' => date('Y-m-d H:i:s')
+                        ];
+                        
+                        $store = $productsModel->update((int)$id, $product);
+                        log_event('UPDATE', "Se modifico el producto $id");
+
+                        if($store !== false) {
+                            return $this->response->setJSON([
+                                'success' => true,
+                                'message' => "El producto se modifico correctamente",
+                                'csrf_token' => $csrfToken
+                            ]);
+                        } 
+                        
+                    } else {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'errors' => $validation->getErrors(),
+                            'csrf_token' => $csrfToken
+                        ]);
+                    }
+                }
+            } else {
+                $this->response->setStatusCode(403)->setJSON(['error' => 'Acceso no autorizado']);
             }
         } catch(Exception $e) {
             throw new Exception($e->getMessage());
@@ -151,19 +179,24 @@ class ProductController extends BaseController
 
     public function delete() {
         try {
-            $csrfToken = csrf_hash();
-            $id = $this->request->getVar('id');
-            
-            if($id){
-                $productsModel = new ProductModel();
-                $productsModel->delete((int)$id);
-                log_event('DELETE', "Se elimino el producto $id");
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Producto eliminado correctamente',
-                    'csrf_token' => $csrfToken
-                ]);
-            }
+            $userRole = $this->session->UserRole;
+            if($userRole === 'admin') {
+                $csrfToken = csrf_hash();
+                $id = $this->request->getVar('id');
+                
+                if($id){
+                    $productsModel = new ProductModel();
+                    $productsModel->delete((int)$id);
+                    log_event('DELETE', "Se elimino el producto $id");
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Producto eliminado correctamente',
+                        'csrf_token' => $csrfToken
+                    ]);
+                }
+            } else {
+                $this->response->setStatusCode(403)->setJSON(['error' => 'Acceso no autorizado']);  
+            } 
     
         } catch (Exception $e) {
             throw new Exception($e->getMessage());

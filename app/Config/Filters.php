@@ -69,11 +69,13 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
-            // 'honeypot',
-            'csrf',
+            // 'honeypot', aso estaba antes de desactivarlo para phpUNit
+            'csrf' => ['except' => ['product/*', 'user/role']]
+            //'csrf',
             // 'invalidchars',
         ],
         'after' => [
+            'csrf' => ['except' => ['product/*', 'user/role']]
             // 'honeypot',
             // 'secureheaders',
         ],

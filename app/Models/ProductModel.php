@@ -23,6 +23,7 @@ class ProductModel extends Model
     }
 
     public function getProducts() {
+        
         return $this->products;
     }
 

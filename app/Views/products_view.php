@@ -97,8 +97,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="products_modal_alerts" class="alert" role="alert">
-                        A simple danger alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                    <div id="products_modal_alerts" class="alert" role="alert">             
                     </div>
                     <input type="hidden" class="form-control" id="product_id" name="product_id">
                     <div class="col-auto">
@@ -113,7 +112,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="save_product">Create</button>
+                    <button type="button" class="btn btn-primary" id="save_product"></button>
                 </div>
             </div>
         </div>
@@ -131,8 +130,9 @@
         var csrfToken = "";
         var filteredProducts = [];
         $(document).ready(function() {
+            // sessionStorage.setItem('userRole', 'admin');
+            setUserRole();
             render_list();
-            // csrfToken = $('meta[name="csrf-token"]').attr('content');
 
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -141,6 +141,26 @@
             });
         });
 
+        function setUserRole() {
+            $.ajax({
+                url:'user/role',
+                type: 'POST',
+                data: {role: 'admin' }, 
+                success: function(response) {
+                    if (response.status == 'success') {
+                        $('meta[name="csrf-token"]').attr('content', response.csrf_token);
+                    }
+                    
+
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                }
+            });
+
+            }
+    
+
         function render_list() {
             $.ajax({
                 url: 'products',
@@ -148,9 +168,10 @@
 
                 success: function(response) {
                     if (response) {
-                        render_table(response);
-                        create_pagination_menu(response)
-                        products = response;
+                        products = response.data;
+                        render_table(products);
+                        create_pagination_menu(products)
+                        $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                     }
 
                 },
@@ -171,6 +192,7 @@
 
         $(document).on('click', '#create_product', function() {
             clean_Fields();
+            $('#save_product').text('Create');
             $('#products_modal_alerts').hide();
             $('#product_modal').modal('show');
         });
@@ -198,6 +220,7 @@
             let product = products.filter((p) => {
                 return p.id == product_id;
             });
+            $('#save_product').text('Edit');
             $('#title').val(product[0].title);
             $('#price').val(product[0].price);
             $('#product_id').val(product[0].id);
@@ -287,7 +310,7 @@
 
         function create_product() {
             let title = $('#title').val();
-            let price = $('#price').val();
+            let price = $('#price').val(); 
 
             $.ajax({
                 url: 'product/store',
@@ -303,13 +326,12 @@
                         setTimeout(() => {
                             $('#product_modal').modal('hide');
                         }, 1500);
-                        clean_Fields();
                         render_list();
                     } else {
                         console.log("entro else");
                         $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
-                        clean_Fields();
                     }
+                    clean_Fields();
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
@@ -317,26 +339,11 @@
                 }
             });
         }
-        /*
-        function actualizarCSRFToken() {
-            $.ajax({
-                url: ' csrf/update',
-                type: 'POST',
-                success: function(response) {
-                    csrfToken = response.csrf_token;
-                    console.log(csrfToken)
-                    console.log('Token CSRF actualizado:', csrfToken);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error al actualizar el token CSRF:', xhr.responseText);
-                }
-            });
-        }
-        */
+
         function clean_Fields() {
             $('#title').val('');
             $('#price').val('');
-            $('#id').val('');
+            $('#product_id').val('');
         }
 
         function update_product(product_id) {
@@ -356,12 +363,12 @@
                         setTimeout(() => {
                             $('#product_modal').modal('hide');
                         }, 1500);
-                        clean_Fields();
+
                         render_list();
                     } else {
                         $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
-                        clean_Fields();
                     }
+                    clean_Fields();
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
@@ -388,6 +395,9 @@
         }
 
         function render_table(products, page = 0) {
+            products.sort((a,b) => {
+                return b.id - a.id;  
+            });
             let tbody = '';
             products.forEach((item, key) => {
                 if (key >= (page * productsByPage) && key <= (page * productsByPage) + productsByPage) {

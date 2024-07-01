@@ -14,4 +14,5 @@ $routes->post('product/store', 'ProductController::store');
 $routes->post('product/update/(:num)', 'ProductController::update/$1');
 $routes->post('product/delete', 'ProductController::delete');
 
-$routes->post('csrf/update', 'CsrfController::updateCsrfToken');
+// $routes->post('csrf/update', 'CsrfController::updateCsrfToken');
+$routes->post('user/role', 'UserController::setUserRole');
