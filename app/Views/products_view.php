@@ -97,7 +97,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="products_modal_alerts" class="alert" role="alert">             
+                    <div id="products_modal_alerts" class="alert" role="alert">
                     </div>
                     <input type="hidden" class="form-control" id="product_id" name="product_id">
                     <div class="col-auto">
@@ -122,6 +122,7 @@
     <script src="<?= base_url('vendor/jquery/jquery.min.js') ?>"></script>
     <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url("node_modules/moment/min/moment.min.js") ?>"></script>
+    <script src="<?php echo base_url('node_modules/sweetalert2/dist/sweetalert2.all.min.js'); ?>"></script>
 
     <script>
         var productsByPage = 5;
@@ -143,14 +144,16 @@
 
         function setUserRole() {
             $.ajax({
-                url:'user/role',
+                url: 'user/role',
                 type: 'POST',
-                data: {role: 'admin' }, 
+                data: {
+                    role: 'admin'
+                },
                 success: function(response) {
                     if (response.status == 'success') {
                         $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                     }
-                    
+
 
                 },
                 error: function(xhr, status, error) {
@@ -158,8 +161,8 @@
                 }
             });
 
-            }
-    
+        }
+
 
         function render_list() {
             $.ajax({
@@ -209,7 +212,20 @@
         $(document).on('click', '#delete_product', function() {
             let product_id = $(this).data('pid');
             if (product_id !== null) {
-                delete_product(product_id);
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: 'Esta acción no se puede revertir',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        delete_product(product_id);
+                    }
+                });
+
             }
             console.log('pid: ' + product_id);
         });
@@ -220,7 +236,7 @@
             let product = products.filter((p) => {
                 return p.id == product_id;
             });
-            $('#save_product').text('Edit');
+            $('#save_product').text('Edit   ');
             $('#title').val(product[0].title);
             $('#price').val(product[0].price);
             $('#product_id').val(product[0].id);
@@ -231,8 +247,8 @@
         $("#creation_date_filter").on('change', function() {
             let selectedDate = $(this).val();
             $('#selectedDate').text('Fecha seleccionada: ' + selectedDate);
-                filterProducts();
-            
+            filterProducts();
+
         });
 
         $("#price_filter").on('change', function() {
@@ -298,6 +314,14 @@
                 success: function(response) {
                     if (response.success) {
                         render_list();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Eliminado!',
+                            text: 'El producto se eliminó exitosamente.',
+                            showConfirmButton: false,
+                            timer: 2000 
+                        });
                     }
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
 
@@ -310,7 +334,7 @@
 
         function create_product() {
             let title = $('#title').val();
-            let price = $('#price').val(); 
+            let price = $('#price').val();
 
             $.ajax({
                 url: 'product/store',
@@ -395,8 +419,8 @@
         }
 
         function render_table(products, page = 0) {
-            products.sort((a,b) => {
-                return b.id - a.id;  
+            products.sort((a, b) => {
+                return b.id - a.id;
             });
             let tbody = '';
             products.forEach((item, key) => {
