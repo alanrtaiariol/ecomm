@@ -37,7 +37,7 @@ class ProductModel extends Model
         $new_products = array_filter($this->products, function($p) use ($id) {
             return $p['id'] !== $id;
         });
-
+        
         $this->products = array_values($new_products);
 
         file_put_contents($this->path, json_encode($this->products));
@@ -46,9 +46,9 @@ class ProductModel extends Model
     public function update($id = null, $product = null): bool {
         
         if(!empty($id) && !empty($product)) {
-            foreach ($this->products as &$p) {
+            foreach ($this->products as $kp => $p) {
                 if ($p['id'] == $id) {
-                    $p = $product;
+                    $this->products[$kp]= $product;
                     break;
                 }
             }

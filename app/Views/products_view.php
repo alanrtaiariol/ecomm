@@ -88,7 +88,6 @@
         </div>
     </div>
 
-
     <div class="modal fade" id="product_modal" tabindex="-1" aria-labelledby="products" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -131,7 +130,6 @@
         var csrfToken = "";
         var filteredProducts = [];
         $(document).ready(function() {
-            // sessionStorage.setItem('userRole', 'admin');
             setUserRole();
             render_list();
 
@@ -151,48 +149,48 @@
                 },
                 success: function(response) {
                     if (response.status == 'success') {
+                        console.log("Rol seteado satisfactoriamente");
                         $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                     }
-
-
-                },
-                error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
-                }
-            });
-
-        }
-
-
-        function render_list() {
-            $.ajax({
-                url: 'products',
-                type: 'GET',
-
-                success: function(response) {
-                    if (response) {
-                        products = response.data;
-                        render_table(products);
-                        create_pagination_menu(products)
-                        $('meta[name="csrf-token"]').attr('content', response.csrf_token);
-                    }
-
                 },
                 error: function(xhr, status, error) {
                     console.error(xhr.responseText);
                 }
             });
         }
+
+        //Paginación y filtros
         $(document).on('click', '.page-link', function() {
             let page = $(this).data('page');
 
             //verifico si hay algun boton activo, lo desactivo y activo el correspondiente
-            $('.page-item.active').removeClass('active');
+            $('.page-item').each(function() {
+                if ($(this).hasClass('active')) {
+                    $(this).removeClass('active');
+                }
+            });
+
             $(this).parent().addClass('active');
 
             render_table(products, page);
         });
 
+        $("#creation_date_filter").on('change', function() {
+            let selectedDate = $(this).val();
+            $('#selectedDate').text('Fecha seleccionada: ' + selectedDate);
+            filterProducts();
+        });
+
+        $("#price_filter").on('change', function() {
+            filterProducts();
+        });
+
+        $('#title_filter').on('input', function() {
+            let title = $(this).val();
+            filterProducts(title);
+        });
+
+        //Acciones CRUD
         $(document).on('click', '#create_product', function() {
             clean_Fields();
             $('#save_product').text('Create');
@@ -225,11 +223,8 @@
                         delete_product(product_id);
                     }
                 });
-
             }
-            console.log('pid: ' + product_id);
         });
-
 
         $(document).on('click', '#edit_product', function() {
             let product_id = $(this).data('pid');
@@ -244,23 +239,25 @@
             $('#product_modal').modal('show');
         });
 
-        $("#creation_date_filter").on('change', function() {
-            let selectedDate = $(this).val();
-            $('#selectedDate').text('Fecha seleccionada: ' + selectedDate);
-            filterProducts();
+        //Funciones
+        function render_list() {
+            $.ajax({
+                url: 'products',
+                type: 'GET',
+                success: function(response) {
+                    if (response) {
+                        products = response.data;
+                        render_table(products);
+                        create_pagination_menu(products)
+                        $('meta[name="csrf-token"]').attr('content', response.csrf_token);
+                    }
 
-        });
-
-        $("#price_filter").on('change', function() {
-            filterProducts();
-        });
-
-        $('#title_filter').on('input', function() {
-            let title = $(this).val();
-            filterProducts(title);
-        });
-
-        //FILTERS
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                }
+            });
+        }
 
         function filterProducts(title = '') {
             console.log(title + "  adentro")
@@ -268,7 +265,6 @@
             filteredProducts = productsClone.filter(product => {
                 let created_at = $('#creation_date_filter').val();
                 let priceFilter = $('#price_filter').val();
-                // console.log(created_at, product.created_at, moment(product.created_at).format('YYYY-MM-DD'))
                 let titleFiltered = product.title.toLowerCase().includes(title.toLowerCase());
                 let dateMatched = created_at === '' || moment(product.created_at).format('YYYY-MM-DD') === created_at;
 
@@ -290,20 +286,6 @@
             render_table(filteredProducts);
         }
 
-        function searchByDate(selectedDate) {
-            filteredProducts = productsClone.filter(product =>
-                product.created_at.split(' ')[0].trim() == selectedDate
-            );
-            return filteredProducts;
-        }
-
-        function searchByTitle(title_filter) {
-            filteredProducts = productsClone.filter(product =>
-                product.title.toLowerCase().includes(title_filter.toLowerCase())
-            );
-            return filteredProducts;
-        }
-
         function delete_product(product_id) {
             $.ajax({
                 url: 'product/delete',
@@ -320,7 +302,7 @@
                             title: '¡Eliminado!',
                             text: 'El producto se eliminó exitosamente.',
                             showConfirmButton: false,
-                            timer: 2000 
+                            timer: 2000
                         });
                     }
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
@@ -336,6 +318,12 @@
             let title = $('#title').val();
             let price = $('#price').val();
 
+            if (!title || !price) {
+                let alertMessage = !title ? "Debe completar el campo title" : "Debe completar el campo price";
+                showAlert(alertMessage, false, false);
+                return false;
+            }
+
             $.ajax({
                 url: 'product/store',
                 type: 'post',
@@ -344,18 +332,14 @@
                     price: price,
                 },
                 success: function(response) {
-                    // actualizarCSRFToken();
                     if (response.success === true) {
-                        $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
-                        setTimeout(() => {
-                            $('#product_modal').modal('hide');
-                        }, 1500);
+                        showAlert(response.message, true);
                         render_list();
+                        clean_Fields();
                     } else {
-                        console.log("entro else");
-                        $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
+                        showAlert(response.errors, false, false);
                     }
-                    clean_Fields();
+
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
@@ -364,15 +348,16 @@
             });
         }
 
-        function clean_Fields() {
-            $('#title').val('');
-            $('#price').val('');
-            $('#product_id').val('');
-        }
-
         function update_product(product_id) {
             let title = $('#title').val();
             let price = $('#price').val();
+
+            if (!title || !price) {
+                let alertMessage = !title ? "Debe completar el campo title" : "Debe completar el campo price";
+                showAlert(alertMessage, false, false);
+                return false;
+            }
+
             $.ajax({
                 url: 'product/update/' + product_id,
                 type: 'POST',
@@ -380,42 +365,21 @@
                     title: title,
                     price: price
                 },
-                // csrf_test_name: csrfToken,
                 success: function(response) {
                     if (response.success === true) {
-                        $('#products_modal_alerts').text(response.message).addClass('alert-success').show();
-                        setTimeout(() => {
-                            $('#product_modal').modal('hide');
-                        }, 1500);
-
+                        showAlert(response.message, true);
                         render_list();
+                        clean_Fields();
                     } else {
-                        $('#products_modal_alerts').text(response.errors).addClass('alert-danger').show();
+                        showAlert(response.errors, false);
                     }
-                    clean_Fields();
+
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
                     console.error(xhr.responseText);
                 }
             });
-        }
-
-        function create_pagination_menu(products) {
-            if (products.length > 0) {
-                let links = "";
-                let button_quantities = Math.floor(products.length / productsByPage);
-
-                if (button_quantities == 0) {
-                    links = `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
-                } else {
-                    for (var i = 0; i <= button_quantities; i++) {
-                        links += `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i+1}</a></li>`;
-                    }
-                }
-                $('ul.pagination').find('li.page-item').not(':first').not(':last').remove();
-                $('ul.pagination').children(':first').after(links);
-            }
         }
 
         function render_table(products, page = 0) {
@@ -424,7 +388,7 @@
             });
             let tbody = '';
             products.forEach((item, key) => {
-                if (key >= (page * productsByPage) && key <= (page * productsByPage) + productsByPage) {
+                if (key >= (page * productsByPage) && key < (page * productsByPage) + productsByPage) {
                     tbody += `<tr>
                             <td> ${item.id !== '' ? item.id : '-'} </td>
                             <td> ${item.title !== '' ? item.title : '-'} </td>
@@ -438,9 +402,45 @@
             $('tbody').html("");
             $('tbody').html(tbody);
         }
-    </script>
-    <!-- -->
 
+        function create_pagination_menu(products) {
+            if (products.length > 0) {
+                let links = "";
+                let button_quantities = Math.ceil(products.length / productsByPage);
+                console.log(button_quantities);
+                if (button_quantities == 0) {
+                    links = `<li class="page-item"><a class="page-link active" href="#" data-page="1">1</a></li>`;
+                } else {
+                    for (var i = 0; i < button_quantities; i++) {
+                        links += `<li class="page-item"><a class="page-link ${i == 0 ? 'active' : ''}" href="#" data-page="${i}">${i+1}</a></li>`;
+                    }
+                }
+                $('ul.pagination').find('li.page-item').not(':first').not(':last').remove();
+                $('ul.pagination').children(':first').after(links);
+            }
+        }
+
+        function clean_Fields() {
+            $('#title').val('');
+            $('#price').val('');
+            $('#product_id').val('');
+        }
+
+        function showAlert(message, type, hideModal = true) {
+            console.log(type ? 'alert-success' : 'alert-danger')
+            $('#products_modal_alerts').text(message)
+                .removeClass(function(index, className) {
+                    return (className.match(/(^|\s)alert-\S+/g) || []).join(' ');
+                })
+                .addClass(type ? 'alert-success' : 'alert-danger').show();
+
+            if (hideModal) {
+                setTimeout(() => {
+                    $('#product_modal').modal('hide');
+                }, 1500);
+            }
+        }
+    </script>
 </body>
 
 </html>

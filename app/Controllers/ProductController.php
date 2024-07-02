@@ -54,15 +54,16 @@ class ProductController extends BaseController
                     'price' => 'required|numeric',
                     'title' => 'required|min_length[3]|max_length[100]',
                 ];
+
                 $new_id = 1;
-                if($this->request->getMethod() === 'POST' && $validation->setRules($rules)){
+                if($this->request->getMethod() === 'POST' && $validation->setRules($rules)) {
                     $productsModel = new ProductModel();
                     $products = $productsModel->getProducts();
                     $title = $this->request->getVar('title');
                     $cleanTitle = htmlspecialchars(trim($title));
                     $cleanPrice = htmlspecialchars(trim($this->request->getVar('price')));
-
-                    if(count($products) > 0 && is_array($products)){
+                 
+                    if(!empty($products) > 0 && is_array($products)){
                         foreach($products as $p) {
                             if($p['title'] == $title) {
                                 return $this->response->setJSON([
@@ -72,11 +73,11 @@ class ProductController extends BaseController
                                 ]);
                             }
                         }
-
+                        
                         $last_product = $products[count($products)-1];
                         $new_id = (int)$last_product['id'] + 1;
                     }
-                    
+
                     $product = [
                         'id' => $new_id,
                         'title' => $cleanTitle,
@@ -127,24 +128,28 @@ class ProductController extends BaseController
                         $productsModel = new ProductModel();
                         $products = $productsModel->getProducts();
                         $title = $this->request->getVar('title');
-                            $cleanTitle = htmlspecialchars(trim($title));
+                        $cleanTitle = htmlspecialchars(trim($title));
                         $cleanPrice = htmlspecialchars(trim($this->request->getVar('price')));
+                        $quantityRepeatProducts = 0;
 
                         if(count($products) > 0 && is_array($products)){
                             foreach($products as $p) {
                                 if($p['title'] == $title) {
-                                    return $this->response->setJSON([
-                                        'success' => false,
-                                        'errors' => 'Ya existe un producto con el mismo titulo',
-                                        'csrf_token' => $csrfToken
-                                    ]);
+                                    $quantityRepeatProducts++;
                                 }
+                            }
+
+                            if($quantityRepeatProducts > 0) {
+                                return $this->response->setJSON([
+                                    'success' => false,
+                                    'errors' => 'Ya existe un producto con el mismo titulo',
+                                    'csrf_token' => $csrfToken
+                                ]);
                             }
                         }
                         
-                        $now = new DateTime();
                         $product = [
-                            'id' => $id,
+                            'id' => (int)$id,
                             'title' => $cleanTitle,
                             'price' => (float)$cleanPrice,
                             'created_at' => date('Y-m-d H:i:s')
@@ -188,7 +193,7 @@ class ProductController extends BaseController
                     $productsModel = new ProductModel();
                     $productsModel->delete((int)$id);
                     log_event('DELETE', "Se elimino el producto $id");
-                    return $this->response->setJSON([
+                    return $this->response->setStatusCode(200)->setJSON([
                         'success' => true,
                         'message' => 'Producto eliminado correctamente',
                         'csrf_token' => $csrfToken
