@@ -154,7 +154,7 @@
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
+                    showAlert(xhr.responseJSON.message, false, false);
                 }
             });
         }
@@ -178,15 +178,16 @@
         $("#creation_date_filter").on('change', function() {
             let selectedDate = $(this).val();
             $('#selectedDate').text('Fecha seleccionada: ' + selectedDate);
-            filterProducts();
+            filterProducts($('#title_filter').val());
         });
 
         $("#price_filter").on('change', function() {
-            filterProducts();
+             
+            filterProducts($('#title_filter').val());
         });
 
         $('#title_filter').on('input', function() {
-            let title = $(this).val();
+            var title = $(this).val();
             filterProducts(title);
         });
 
@@ -245,22 +246,34 @@
                 url: 'products',
                 type: 'GET',
                 success: function(response) {
-                    if (response) {
+                    if (response.status == 'success') {
                         products = response.data;
                         render_table(products);
                         create_pagination_menu(products)
                         $('meta[name="csrf-token"]').attr('content', response.csrf_token);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: response.status,
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
                     }
-
                 },
                 error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
+                    Swal.fire({
+                            icon: 'error',
+                            title: xhr.responseJSON.status,
+                            text: xhr.responseJSON.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
                 }
             });
         }
 
         function filterProducts(title = '') {
-            console.log(title + "  adentro")
             productsClone = [...products];
             filteredProducts = productsClone.filter(product => {
                 let created_at = $('#creation_date_filter').val();
@@ -272,15 +285,11 @@
                 let priceMatch = true;
                 if (priceFilter) {
                     let [minPrice, maxPrice] = priceFilter.split('-');
-                    console.log(minPrice, maxPrice)
                     minPrice = parseFloat(minPrice);
                     maxPrice = maxPrice ? parseFloat(maxPrice) : Infinity;
                     priceMatch = product.price >= minPrice && product.price <= maxPrice;
-                    console.log(product.price + " >= " + minPrice + " && " + product.price + " <= " + maxPrice)
                 }
-                console.log(priceMatch)
                 return (title == '' || titleFiltered) && dateMatched && priceMatch;
-
             });
 
             render_table(filteredProducts);
@@ -294,7 +303,7 @@
                     id: product_id,
                 },
                 success: function(response) {
-                    if (response.success) {
+                    if (response.status == 'success') {
                         render_list();
 
                         Swal.fire({
@@ -304,12 +313,19 @@
                             showConfirmButton: false,
                             timer: 2000
                         });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al eliminar producto',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
                     }
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
-
                 },
                 error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
+                    showAlert(xhr.responseJSON.message, false, false);
                 }
             });
         }
@@ -332,18 +348,17 @@
                     price: price,
                 },
                 success: function(response) {
-                    if (response.success === true) {
+                    if (response.status == 'success') {
                         showAlert(response.message, true);
                         render_list();
                         clean_Fields();
                     } else {
-                        showAlert(response.errors, false, false);
+                        showAlert(response.message, false, false);
                     }
-
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
+                    showAlert(xhr.responseJSON.message, false, false);
                 }
             });
         }
@@ -366,18 +381,18 @@
                     price: price
                 },
                 success: function(response) {
-                    if (response.success === true) {
+                    if (response.status == 'success') {
                         showAlert(response.message, true);
                         render_list();
                         clean_Fields();
                     } else {
-                        showAlert(response.errors, false);
+                        showAlert(response.message, false);
                     }
 
                     $('meta[name="csrf-token"]').attr('content', response.csrf_token);
                 },
                 error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
+                    showAlert(xhr.responseJSON.message, false, false);
                 }
             });
         }
@@ -407,7 +422,7 @@
             if (products.length > 0) {
                 let links = "";
                 let button_quantities = Math.ceil(products.length / productsByPage);
-                console.log(button_quantities);
+                
                 if (button_quantities == 0) {
                     links = `<li class="page-item"><a class="page-link active" href="#" data-page="1">1</a></li>`;
                 } else {
@@ -427,7 +442,6 @@
         }
 
         function showAlert(message, type, hideModal = true) {
-            console.log(type ? 'alert-success' : 'alert-danger')
             $('#products_modal_alerts').text(message)
                 .removeClass(function(index, className) {
                     return (className.match(/(^|\s)alert-\S+/g) || []).join(' ');
