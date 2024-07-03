@@ -61,6 +61,7 @@ class ProductModel extends Model
             if(file_put_contents($this->path, json_encode($this->products)) == false) {
                 throw new Exception("Error, no se pudo almacenar el producto en el archivo JSON");
             }
+            return $this->products;
         } catch (Exception $e) {
             throw new Exception("Error, no se pudo almacenar el producto en el archivo JSON", $e->getMessage());
         }

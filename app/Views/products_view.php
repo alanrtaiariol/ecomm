@@ -124,15 +124,18 @@
     <script src="<?php echo base_url('node_modules/sweetalert2/dist/sweetalert2.all.min.js'); ?>"></script>
 
     <script>
+        var userRole = sessionStorage.getItem('UserRole');
+        var buttonPermission = userRole !== 'admin' ? true : false ;
         var productsByPage = 5;
         var products = [];
         var productsClone = [];
         var csrfToken = "";
         var filteredProducts = [];
+        
         $(document).ready(function() {
             setUserRole();
             render_list();
-
+            $('#create_product').attr('disabled', buttonPermission);
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
                     xhr.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
@@ -145,16 +148,21 @@
                 url: 'user/role',
                 type: 'POST',
                 data: {
-                    role: 'admin'
+                    role: 'usuario'
                 },
                 success: function(response) {
                     if (response.status == 'success') {
                         console.log("Rol seteado satisfactoriamente");
                         $('meta[name="csrf-token"]').attr('content', response.csrf_token);
+                        
+                        sessionStorage.setItem('UserRole', response.role);
+                        
+                    } else {
+                                                
                     }
                 },
                 error: function(xhr, status, error) {
-                    showAlert(xhr.responseJSON.message, false, false);
+                    console.error(xhr.responseJSON.message, false, false);
                 }
             });
         }
@@ -398,6 +406,7 @@
         }
 
         function render_table(products, page = 0) {
+            
             products.sort((a, b) => {
                 return b.id - a.id;
             });
@@ -409,8 +418,8 @@
                             <td> ${item.title !== '' ? item.title : '-'} </td>
                             <td> ${item.price !== '' ? item.price : '-'} </td>
                             <td> ${item.created_at !== '' ? moment(item.created_at).format('YYYY-MM-DD') : '-'} </td>
-                            <td> <button type="button" id="edit_product"  data-pid="${item.id}" class="btn btn-success"><i class="bi bi-pencil"></i></button>
-                            <button type="button" id="delete_product"  data-pid="${item.id}" class="btn btn-danger"><i class="bi bi-trash"></i></button> </td>
+                            <td> <button type="button" id="edit_product" ${buttonPermission ? 'disabled' : ''}  data-pid="${item.id}" class="btn btn-success"><i class="bi bi-pencil"></i></button>
+                            <button type="button" id="delete_product"  ${buttonPermission ? 'disabled' : ''} data-pid="${item.id}" class="btn btn-danger"><i class="bi bi-trash"></i></button> </td>
                         </tr>`;
                 }
             });

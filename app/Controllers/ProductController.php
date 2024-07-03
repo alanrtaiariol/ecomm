@@ -51,6 +51,7 @@ class ProductController extends BaseController
         try {
             $csrfToken = csrf_hash();
             $userRole = $this->session->UserRole;
+            
             if($userRole === 'admin') {
                 $validation = \Config\Services::validation();
                 $rules = [
@@ -203,7 +204,7 @@ class ProductController extends BaseController
                 if($id){
                     $this->productModel->delete((int)$id);
                     log_event('DELETE', "Se elimino el producto $id");
-                    return $this->response->setJSON([
+                    return $this->response->setStatusCode(200)->setJSON([
                         'status' =>'success',
                         'message' => 'Producto eliminado correctamente',
                         'csrf_token' => $csrfToken
