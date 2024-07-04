@@ -51,7 +51,7 @@ Vagrantfile
 writable/cache/*
 !writable/cache/index.html
 
-writable/logs/*
+
 !writable/logs/index.html
 
 writable/session/*
