@@ -73,11 +73,11 @@
                         <nav aria-label="...">
                             <ul class="pagination">
                                 <li class="page-item disabled">
-                                    <a class="page-link">Previous</a>
+                                    <a class="page-link" data-control="-1">Previous</a>
                                 </li>
 
                                 <li class="page-item">
-                                    <a class="page-link" href="#">Next</a>
+                                    <a class="page-link" data-control="+1" href="#">Next</a>
                                 </li>
                             </ul>
                         </nav>
@@ -131,11 +131,14 @@
         var productsClone = [];
         var csrfToken = "";
         var filteredProducts = [];
-        
+        var role = 'admin';
+
         $(document).ready(function() {
+            
             setUserRole();
             render_list();
-            $('#create_product').attr('disabled', buttonPermission);
+
+            $('#create_product').prop('disabled', buttonPermission);
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
                     xhr.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
@@ -143,22 +146,28 @@
             });
         });
 
+        //Configuración de roles
         function setUserRole() {
+            
             $.ajax({
                 url: 'user/role',
                 type: 'POST',
                 data: {
-                    role: 'usuario'
+                    role: role
                 },
                 success: function(response) {
                     if (response.status == 'success') {
-                        console.log("Rol seteado satisfactoriamente");
                         $('meta[name="csrf-token"]').attr('content', response.csrf_token);
-                        
                         sessionStorage.setItem('UserRole', response.role);
-                        
+                        console.log("Rol seteado satisfactoriamente");
                     } else {
-                                                
+                        Swal.fire({
+                            icon: "error",
+                            title: response.status,
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });                                               
                     }
                 },
                 error: function(xhr, status, error) {
@@ -170,16 +179,38 @@
         //Paginación y filtros
         $(document).on('click', '.page-link', function() {
             let page = $(this).data('page');
+            let control = $(this).data('control');
+ 
+                if (!page && control) {
+                    $('.page-link').each(function() {
+                        if ($(this).hasClass('active')) {
+                            $(this).removeClass('active');
 
-            //verifico si hay algun boton activo, lo desactivo y activo el correspondiente
-            $('.page-item').each(function() {
-                if ($(this).hasClass('active')) {
-                    $(this).removeClass('active');
+                            page = parseInt($(this).data('page')) + parseInt(control); 
+                        }
+                    });        
+                    $(`.page-link[data-page="${page}"]`).addClass('active');   
+                    let buttonQuantities = Math.ceil(products.length / productsByPage)-1;
+
+                    if(page == 0){
+                        $(`.page-link[data-control="-1"]`).parent().prop('disabled', true).addClass('disabled');  
+                    } else {
+                        $(`.page-link[data-control="-1"]`).parent().prop('disabled', false).removeClass('disabled');   
+                    }
+
+                    if (page == buttonQuantities) {
+                        $(`.page-link[data-control="+1"]`).parent().prop('disabled', true).addClass('disabled');       
+                    } else {
+                        $(`.page-link[data-control="+1"]`).parent().prop('disabled', false).removeClass('disabled');     
+                    }
+                } else {
+                    $('.page-link').each(function() {
+                        if ($(this).hasClass('active')) {
+                            $(this).removeClass('active');
+                        }
+                    });
+                    $(this).addClass('active');        
                 }
-            });
-
-            $(this).parent().addClass('active');
-
             render_table(products, page);
         });
 
