@@ -23,6 +23,10 @@ cd ecomm
 
 composer install
 
+# Permisos
+ sudo chown -R www-data:www-data /var/www/ecomm
+
+
 ##  Para correr los test ejecutar por consola
 
 vendor/bin/phpunit tests/ProductModel/ProductModelTest.php 
